@@ -1,0 +1,8 @@
+{
+  "mood": "VERY_LOW",
+  "cravingsLevel": 10,
+  "triggers": ["isolation", "panic", "shame", "withdrawal"],
+  "notes": "I feel unsafe and close to relapse and I might use tonight.",
+  "feltUnsafe": true,
+  "needsSupport": true
+}

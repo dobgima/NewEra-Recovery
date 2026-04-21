@@ -1,0 +1,31 @@
+image:
+  repository: acrrhaidev12345.azurecr.io/recovery-dev
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4000
+
+env:
+  nodeEnv: development
+  port: "4000"
+  jwtAccessExpiresIn: "15m"
+  jwtRefreshExpiresIn: "30d"
+
+secretEnv:
+  DATABASE_URL: ""
+  DIRECT_DATABASE_URL: ""
+  SHADOW_DATABASE_URL: ""
+  JWT_ACCESS_SECRET: ""
+  JWT_REFRESH_SECRET: ""
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  liveness:
+    path: /health
+    initialDelaySeconds: 20
+    periodSeconds: 20

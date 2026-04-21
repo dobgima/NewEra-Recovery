@@ -1,0 +1,11 @@
+{
+  "name": "Hope and Chance Integrated Health",
+  "zipCode": "98201",
+  "city": "Everett",
+  "state": "WA",
+  "insuranceAccepted": ["Medicaid"],
+  "modalities": ["AA", "NA", "PEER_SUPPORT"],
+  "hasCrisisSupport": false,
+  "phone": "360-503-3328",
+  "website": "neweramentalhealth.org"
+}

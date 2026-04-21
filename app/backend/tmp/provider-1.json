@@ -1,0 +1,11 @@
+{
+  "name": "NeweraMentalHealth",
+  "zipCode": "98201",
+  "city": "Everett",
+  "state": "WA",
+  "insuranceAccepted": ["Premera", "Medicaid", "Molina"],
+  "modalities": ["SMART", "THERAPY", "OUTPATIENT"],
+  "hasCrisisSupport": true,
+  "phone": "360-503-3328",
+  "website": "hopeandchanceintegratedhealth.com"
+}

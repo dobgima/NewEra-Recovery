@@ -1,0 +1,64 @@
+replicaCount: 1
+
+image:
+  repository: recoveryhealthaidacr.azurecr.io/recovery-health-aid-backend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4000
+  targetPort: 4000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dev"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: "api-dev.newera.local"
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    enabled: true
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+env:
+  nodeEnv: development
+  port: "4000"
+  jwtAccessExpiresIn: "15m"
+  jwtRefreshExpiresIn: "30d"
+
+secretEnv:
+  DATABASE_URL: ""
+  DIRECT_DATABASE_URL: ""
+  SHADOW_DATABASE_URL: ""
+  JWT_ACCESS_SECRET: ""
+  JWT_REFRESH_SECRET: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  readiness:
+    path: /readiness
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  liveness:
+    path: /health
+    initialDelaySeconds: 20
+    periodSeconds: 20
+
+namespace: default
+environment: dev

@@ -1,0 +1,44 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+
+      - run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/recovery-backend:${{ github.sha }} .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/recovery-backend:${{ github.sha }}
+
+      - run: az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - run: |
+          helm upgrade --install recovery-dev ./helm \
+          -f ./helm/values-dev.yaml \
+          --set image.repository=${{ secrets.ACR_LOGIN_SERVER }}/recovery-backend \
+          --set image.tag=${{ github.sha }} \
+          -n recovery-dev

@@ -1,0 +1,11 @@
+{
+  "name": "North Sound Crisis Access",
+  "zipCode": "98201",
+  "city": "Everett",
+  "state": "WA",
+  "insuranceAccepted": ["Premera", "Medicaid", "United"],
+  "modalities": ["CRISIS", "THERAPY"],
+  "hasCrisisSupport": true,
+  "phone": "425-555-0103",
+  "website": "https://example.com/north-sound-crisis-access"
+}

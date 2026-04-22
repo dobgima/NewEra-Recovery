@@ -50,7 +50,7 @@ export const updateSupportContactController = async (
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const validatedData = UpdateSupportContactDtoSchema.parse(req.body);
     const contact = await supportContactsService.updateSupportContact(req.user.sub, id, validatedData);
     return res.status(200).json(contact);
@@ -69,7 +69,7 @@ export const deleteSupportContactController = async (
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     await supportContactsService.deleteSupportContact(req.user.sub, id);
     return res.status(204).send();
   } catch (error) {

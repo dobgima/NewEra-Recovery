@@ -1,0 +1,76 @@
+name: Backend CD - Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Backend CI - Build and Push Image"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: recovery-health-aid-backend
+  NAMESPACE: recovery-dev
+  HELM_RELEASE: recovery-dev
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app/backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: Azure/aks-set-context@v4
+        with:
+          resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+
+      - name: Setup kubectl
+        uses: Azure/setup-kubectl@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install "${{ env.HELM_RELEASE }}" ./helm \
+            -f ./helm/values-dev.yaml \
+            --namespace "${{ env.NAMESPACE }}" \
+            --create-namespace \
+            --set image.repository="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}" \
+            --set image.tag="${{ steps.vars.outputs.image_tag }}"
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-backend -n "${{ env.NAMESPACE }}" --timeout=180s
+          kubectl get pods -n "${{ env.NAMESPACE }}"

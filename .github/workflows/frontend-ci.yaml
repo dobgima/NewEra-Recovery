@@ -1,4 +1,4 @@
-name: Frontend CI - Build
+name: Frontend CI - Build and Push Image
 
 on:
   push:
@@ -11,14 +11,21 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: recovery-health-aid-frontend
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
 
     defaults:
       run:
         working-directory: app/frontend
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       - name: Checkout
@@ -41,9 +48,24 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+      - name: Set image metadata
+        id: meta
+        run: echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login
+        uses: azure/login@v2
         with:
-          name: frontend-dist
-          path: app/frontend/dist
-          if-no-files-found: error
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: az acr login --name "${{ secrets.ACR_NAME }}"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}" \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}"

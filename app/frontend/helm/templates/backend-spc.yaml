@@ -1,0 +1,44 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: recovery-dev-kv
+  namespace: recovery-dev
+spec:
+  provider: azure
+  secretObjects:
+    - secretName: recovery-dev-backend-secrets
+      type: Opaque
+      data:
+        - objectName: DATABASE-URL
+          key: DATABASE_URL
+        - objectName: DIRECT-DATABASE-URL
+          key: DIRECT_DATABASE_URL
+        - objectName: SHADOW-DATABASE-URL
+          key: SHADOW_DATABASE_URL
+        - objectName: JWT-ACCESS-SECRET
+          key: JWT_ACCESS_SECRET
+        - objectName: JWT-REFRESH-SECRET
+          key: JWT_REFRESH_SECRET
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "68aa5221-6720-4436-96b2-3628a99ea90a"
+    keyvaultName: "kvrhaiddev12345"
+    tenantId: "9754d8cf-fdd6-4bc6-ad97-5dd46ecf681e"
+    objects: |
+      array:
+        - |
+          objectName: DATABASE-URL
+          objectType: secret
+        - |
+          objectName: DIRECT-DATABASE-URL
+          objectType: secret
+        - |
+          objectName: SHADOW-DATABASE-URL
+          objectType: secret
+        - |
+          objectName: JWT-ACCESS-SECRET
+          objectType: secret
+        - |
+          objectName: JWT-REFRESH-SECRET
+          objectType: secret

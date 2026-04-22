@@ -1,0 +1,6 @@
+apiVersion: v2
+name: recovery-health-aid-frontend
+description: Frontend for Recovery Health Aid
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

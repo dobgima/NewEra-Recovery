@@ -1,14 +1,24 @@
-name: Frontend CD - Deploy to Azure Static Web Apps
+name: Frontend CD - Deploy to AKS
 
 on:
   workflow_run:
-    workflows: ["Frontend CI - Build"]
+    workflows: ["Frontend CI - Build and Push Image"]
     types:
       - completed
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy"
+        required: true
 
 permissions:
   contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: recovery-health-aid-frontend
+  NAMESPACE: recovery-dev
+  HELM_RELEASE: recovery-dev-frontend
 
 jobs:
   deploy:
@@ -17,51 +27,50 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Download frontend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: dist
-        continue-on-error: true
+    defaults:
+      run:
+        working-directory: app/frontend
 
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
-        if: ${{ !hashFiles('dist/**') }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        if: ${{ !hashFiles('dist/**') }}
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/frontend/package-lock.json
-
-      - name: Install dependencies
-        if: ${{ !hashFiles('dist/**') }}
-        working-directory: app/frontend
-        run: npm ci
-
-      - name: Create production env
-        if: ${{ !hashFiles('dist/**') }}
-        working-directory: app/frontend
+      - name: Resolve image tag
+        id: vars
         run: |
-          echo "VITE_API_BASE=${{ secrets.VITE_API_BASE_PROD }}" > .env.production
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build frontend
-        if: ${{ !hashFiles('dist/**') }}
-        working-directory: app/frontend
-        run: npm run build
-
-      - name: Copy build output
-        if: ${{ !hashFiles('dist/**') }}
-        run: cp -r app/frontend/dist ./dist
-
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Azure login
+        uses: azure/login@v2
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: "upload"
-          skip_app_build: true
-          app_location: "dist"
-          output_location: ""
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: Azure/aks-set-context@v4
+        with:
+          resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+
+      - name: Setup kubectl
+        uses: Azure/setup-kubectl@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install "${{ env.HELM_RELEASE }}" ./helm \
+            -f ./helm/values-dev.yaml \
+            --namespace "${{ env.NAMESPACE }}" \
+            --create-namespace \
+            --set image.repository="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}" \
+            --set image.tag="${{ steps.vars.outputs.image_tag }}"
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-frontend -n "${{ env.NAMESPACE }}" --timeout=180s
+          kubectl get pods -n "${{ env.NAMESPACE }}"

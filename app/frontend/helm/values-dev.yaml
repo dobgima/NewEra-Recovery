@@ -1,0 +1,24 @@
+image:
+  repository: acrrhaidev12345.azurecr.io/recovery-dev-frontend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dev"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: "frontend-dev.newera.local"
+  tls:
+    enabled: true
+
+namespace: recovery-dev
+environment: dev

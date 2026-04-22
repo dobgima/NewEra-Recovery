@@ -1,0 +1,17 @@
+export type Screen =
+  | 'landing'
+  | 'login'
+  | 'register'
+  | 'forgot-password'
+  | 'reset-password'
+  | '2fa-verify'
+  | 'dashboard'
+  | 'checkins'
+  | 'recovery-plan'
+  | 'crisis-plan'
+  | 'milestones'
+  | 'resources'
+  | 'peer-support'
+  | 'treatment'
+  | 'profile'
+  | 'support-contacts';

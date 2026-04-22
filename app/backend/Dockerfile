@@ -2,6 +2,10 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
+RUN apt-get update -y && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 RUN npm ci
 
@@ -35,8 +39,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Security: Create non-root user and set ownership
-RUN useradd -m -u 1000 node && \
+# Security: Create non-root user and set ownership (if not already exists)
+RUN id -u node >/dev/null 2>&1 || useradd -m -u 1000 node && \
     chown -R node:node /app
 
 USER node
